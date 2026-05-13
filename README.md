@@ -11,6 +11,12 @@ Este proyecto consiste en una aplicación web desarrollada en React con JavaScri
 
 ## Estructura del Proyecto
 - `/frontend`: Interfaz de usuario.
+  <img width="1359" height="638" alt="image" src="https://github.com/user-attachments/assets/ebdc893e-22b5-42bd-b4ac-911a0c3ce693" />
+  <img width="524" height="565" alt="image" src="https://github.com/user-attachments/assets/33ffb02e-825b-43e3-8d54-5cb3167105f4" />
+  <img width="1359" height="640" alt="image" src="https://github.com/user-attachments/assets/724fcdd0-a53a-4999-a5a6-c8d2e4d8c2d4" />
+
+
+
 - `/backend`: Lógica del servidor y API.
 
 # No Tan De Una (NTDU) - Gestión de Finanzas Personales
