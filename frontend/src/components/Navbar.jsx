@@ -28,7 +28,7 @@ export const Navbar = () => {
     <nav className="flex justify-between items-center px-6 py-4 bg-white shadow-sm">
       <Link to="/" className="flex items-center gap-2">
         <span className="text-2xl">💸</span>
-        <h1 className="text-xl font-bold tracking-tight text-gray-900">Notan de Una</h1>
+        <h1 className="text-xl font-bold tracking-tight text-gray-900">No Tan De Una</h1>
       </Link>
       
       <div className="flex items-center gap-4">

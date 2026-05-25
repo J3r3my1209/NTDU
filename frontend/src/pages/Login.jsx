@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'; // Añadimos signInWithPopup
-import { auth, googleProvider } from '../config/firebase'; // Importamos googleProvider
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'; 
+import { auth, googleProvider } from '../config/firebase'; 
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,23 +9,76 @@ export const Login = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Función para login tradicional
+  // Función interna para sincronizar el token con Node.js y MongoDB Atlas
+  const sincronizarConBackend = async (usuarioFirebase) => {
+    // 1. Extraemos el IdToken JWT que generó Firebase
+    const token = await usuarioFirebase.getIdToken();
+
+    // 2. Enviamos el token al endpoint del Backend
+    const respuesta = await fetch("http://localhost:3001/api/usuarios/auth-sync", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}` // Formato Bearer Token exigido por el middleware
+      }
+    });
+
+    const datos = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(datos.msg || "Error en la sincronización con el servidor");
+    }
+
+    // Guardamos el token en el localStorage para mantener la sesión en futuras peticiones
+    localStorage.setItem('token_gasto_app', token);
+    
+    return datos;
+  };
+
+  // 1. Función para login tradicional con validaciones locales
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
+
+    // ── VALIDACIONES DE FRONTEND (Sprint 1) ──
+    if ([email, password].includes('')) {
+      setError('Todos los campos son obligatorios.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // Autentica en Firebase cliente
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Sincroniza con MongoDB Atlas
+      await sincronizarConBackend(userCredential.user);
+      
       navigate('/');
     } catch (err) {
-      setError('Correo o contraseña incorrectos.');
       console.error(err.message);
+      // Ataja errores tanto de Firebase como del Backend
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setError('Correo o contraseña incorrectos.');
+      } else {
+        setError(err.message || 'Error al iniciar sesión.');
+      }
     }
   };
 
-  // NUEVA: Función para login con Google
+  // 2. Función para login con Google
   const handleGoogleLogin = async () => {
+    setError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
+      // Autentica con popup de Google
+      const userCredential = await signInWithPopup(auth, googleProvider);
+      
+      // Sincroniza con MongoDB Atlas de manera transparente
+      await sincronizarConBackend(userCredential.user);
+      
       navigate('/');
     } catch (err) {
       console.error("Error con Google:", err.message);
@@ -47,7 +100,6 @@ export const Login = () => {
             placeholder="Correo electrónico" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#00E56A] focus:ring-1 focus:ring-[#00E56A]"
           />
           <input 
@@ -55,11 +107,10 @@ export const Login = () => {
             placeholder="Contraseña" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#00E56A] focus:ring-1 focus:ring-[#00E56A]"
           />
 
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
 
           <button 
             type="submit" 
