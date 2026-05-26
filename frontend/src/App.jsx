@@ -1,20 +1,20 @@
 import { Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { auth } from './config/firebase'; // Asegúrate de que esta ruta apunte bien a tu firebase.js
+import { auth } from './config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
-// Importamos tus componentes y páginas reales
-import { Navbar } from './components/Navbar'; // Tu Navbar real con llaves
+import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { Profile } from './pages/Profile';
 import GastosDashboard from './components/GastosDashboard';
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Escuchamos la sesión globalmente en App para saber si mostrar el Dashboard o no
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -33,16 +33,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 🟢 Tu Navbar interactivo real (Maneja sesión, foto de perfil y logout) */}
       <Navbar />
 
-      {/* Control del enrutamiento de tus páginas principales */}
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/" element={
           <>
-            {/* Mensaje estético de bienvenida en la página de inicio */}
             <div className="text-center my-12 px-4">
               <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
                 Controla tus gastos, <span className="text-emerald-500">sin tantas vueltas.</span>
@@ -52,7 +51,6 @@ function App() {
               </p>
             </div>
 
-            {/* 🚀 Si el usuario inició sesión de verdad, le mostramos el panel interactivo */}
             {user ? (
               <div className="pb-12">
                 <GastosDashboard />
