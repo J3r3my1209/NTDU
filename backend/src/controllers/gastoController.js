@@ -1,85 +1,72 @@
-import Gasto from '../models/gastos.js';
+import Gasto from '../models/gastos.js'; // Asegúrate de apuntar bien a tu modelo
 
-// 1. Registrar un nuevo gasto
+// 🔍 1. OBTENER GASTOS
+export const obtenerGastos = async (req, res) => {
+    try {
+        // 🟢 Respaldo de seguridad: si req.user no existe, frena antes de leer el .uid
+        if (!req.user || !req.user.uid) {
+            return res.status(401).json({ mensaje: 'No se pudo identificar al usuario autenticado' });
+        }
+
+        const transacciones = await Gasto.find({ usuarioId: req.user.uid }).sort({ createdAt: -1 });
+        res.status(200).json(transacciones);
+    } catch (error) {
+        console.error('Error al obtener transacciones:', error);
+        res.status(500).json({ mensaje: 'Error al cargar el historial' });
+    }
+};
+
+// 💾 2. CREAR GASTO
 export const crearGasto = async (req, res) => {
     try {
-        const { descripcion, monto, categoria } = req.body;
+        // 🟢 Respaldo de seguridad
+        if (!req.user || !req.user.uid) {
+            return res.status(401).json({ mensaje: 'No se pudo identificar al usuario autenticado' });
+        }
 
-        // req.usuario viene inyectado desde tu middleware de Firebase Auth
+        const { descripcion, monto, tipo, cuenta, categoria } = req.body;
+
         const nuevoGasto = new Gasto({
             descripcion,
-            monto,
-            categoria,
-            usuarioId: req.usuario._id 
+            monto: Number(monto),
+            tipo: tipo || 'Gasto',
+            cuenta: cuenta || 'Efectivo',
+            categoria: categoria || 'Otros',
+            usuarioId: req.user.uid
         });
 
         const gastoGuardado = await nuevoGasto.save();
         res.status(201).json(gastoGuardado);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Error al crear la transacción:', error);
+        res.status(500).json({ mensaje: 'Error interno al intentar guardar el movimiento' });
     }
 };
 
-// 2. Obtener los gastos exclusivos del usuario logueado
-export const obtenerGastos = async (req, res) => {
-    try {
-        // Filtramos para que Jeremy solo vea los gastos de Jeremy
-        const gastos = await Gasto.find({ usuarioId: req.usuario._id }).sort({ createdAt: -1 });
-        res.json(gastos);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// 3. Actualizar un gasto existente
+// ✏️ 3. ACTUALIZAR GASTO
 export const actualizarGasto = async (req, res) => {
     try {
-        const { id } = req.params; // Capturamos el ID del gasto desde la URL
-        const { descripcion, monto, categoria } = req.body;
-
-        // Buscamos el gasto por su ID
-        const gasto = await Gasto.findById(id);
-
-        if (!gasto) {
-            return res.status(404).json({ message: 'Gasto no encontrado' });
-        }
-
-        // 🔒 SEGURIDAD: Validamos que el gasto le pertenezca al usuario logueado
-        if (gasto.usuarioId.toString() !== req.usuario._id.toString()) {
-            return res.status(401).json({ message: 'Acción no autorizada para este usuario' });
-        }
-
-        // Actualizamos los campos
-        gasto.descripcion = descripcion || gasto.descripcion;
-        gasto.monto = monto !== undefined ? monto : gasto.monto;
-        gasto.categoria = categoria || gasto.categoria;
-
-        const gastoActualizado = await gasto.save();
-        res.json(gastoActualizado);
+        const { id } = req.params;
+        const actualizacion = await Gasto.findOneAndUpdate(
+            { _id: id, usuarioId: req.user.uid }, 
+            req.body,
+            { new: true }
+        );
+        if (!actualizacion) return res.status(404).json({ mensaje: 'Transacción no encontrada' });
+        res.status(200).json(actualizacion);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).json({ mensaje: 'Error al actualizar' });
     }
 };
 
-// 4. Eliminar un gasto
+// ❌ 4. ELIMINAR GASTO
 export const eliminarGasto = async (req, res) => {
     try {
         const { id } = req.params;
-
-        const gasto = await Gasto.findById(id);
-
-        if (!gasto) {
-            return res.status(404).json({ message: 'Gasto no encontrado' });
-        }
-
-        // 🔒 SEGURIDAD: Validamos propiedad antes de borrar
-        if (gasto.usuarioId.toString() !== req.usuario._id.toString()) {
-            return res.status(401).json({ message: 'Acción no autorizada para este usuario' });
-        }
-
-        await gasto.deleteOne();
-        res.json({ message: 'Gasto eliminado correctamente' });
+        const eliminado = await Gasto.findOneAndDelete({ _id: id, usuarioId: req.user.uid });
+        if (!eliminado) return res.status(404).json({ mensaje: 'Transacción no encontrada' });
+        res.status(200).json({ mensaje: 'Eliminado correctamente' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ mensaje: 'Error al eliminar' });
     }
 };

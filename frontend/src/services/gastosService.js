@@ -1,47 +1,56 @@
 import axios from 'axios';
-import { getAuth } from 'firebase/auth';
 
 const API_URL = 'http://localhost:3001/api/gastos';
 
-// Función auxiliar para obtener el token de Firebase en tiempo real
-const getHeaders = async () => {
-    const auth = getAuth();
-    const usuarioActual = auth.currentUser;
-    if (!usuarioActual) throw new Error("Usuario no autenticado");
-    
-    const token = await usuarioActual.getIdToken();
-    return {
+// 1. OBTENER GASTOS
+export const obtenerGastosAPI = async (token) => {
+    const response = await axios.get(API_URL, {
         headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${token}`
         }
-    };
+    });
+    return response.data; // Axios desempaqueta la respuesta automáticamente en .data
 };
 
-// 1. Obtener todos los gastos del usuario
-export const obtenerGastosAPI = async () => {
-    const headers = await getHeaders();
-    const response = await axios.get(API_URL, headers);
+// 2. CREAR GASTO
+export const crearGastoAPI = async (datosFormulario, token) => {
+    const response = await axios.post(API_URL, datosFormulario, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    });
     return response.data;
 };
 
-// 2. Crear un nuevo gasto
-export const crearGastoAPI = async (gastoData) => {
-    const headers = await getHeaders();
-    const response = await axios.post(API_URL, gastoData, headers);
+// 3. ACTUALIZAR GASTO (Por si lo necesitas más adelante)
+export const actualizarGastoAPI = async (id, gastoData, token) => {
+    const response = await axios.put(`${API_URL}/${id}`, gastoData, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    });
     return response.data;
 };
 
-// 3. Actualizar un gasto existente
-export const actualizarGastoAPI = async (id, gastoData) => {
-    const headers = await getHeaders();
-    const response = await axios.put(`${API_URL}/${id}`, gastoData, headers);
+// 4. ELIMINAR GASTO
+export const eliminarGastoAPI = async (id, token) => {
+    const response = await axios.delete(`${API_URL}/${id}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
     return response.data;
 };
 
-// 4. Eliminar un gasto
-export const eliminarGastoAPI = async (id) => {
-    const headers = await getHeaders();
-    const response = await axios.delete(`${API_URL}/${id}`, headers);
-    return response.data;
+// 5. EXPORTAR REPORTE A EXCEL (.XLSX)
+export const exportarAExcelAPI = async (token) => {
+    const response = await axios.get(`${API_URL}/exportar/excel`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        responseType: 'blob' // CRÍTICO: Indica a Axios que descargue un archivo binario (.xlsx)
+    });
+    return response.data; // Retorna el blob directo para que el navegador lo descargue
 };
