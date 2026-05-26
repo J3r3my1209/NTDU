@@ -4,6 +4,12 @@ import { auth } from "../config/firebase.js";
 // Importamos los servicios de la API
 import { obtenerGastosAPI, crearGastoAPI, eliminarGastoAPI, exportarAExcelAPI } from '../services/gastosService';
 
+// 📊 Diccionario estático de categorías separadas de forma lógica
+const categoriasPorTipo = {
+    Gasto: ['Comida', 'Vivienda', 'Transporte', 'Estudios', 'Otros'],
+    Ingreso: ['Sueldo', 'Inversiones', 'Negocio', 'Premios', 'Otros']
+};
+
 const GastosDashboard = () => {
     // --- ESTADOS ---
     const [gastos, setGastos] = useState([]);
@@ -38,7 +44,7 @@ const GastosDashboard = () => {
         cargarTransacciones();
     }, []);
 
-    // --- 🛠️ CÁLCULOS DE LOS TOTALES SEGUROS (Parche contra .filter Error) ---
+    // --- 🛠️ CÁLCULOS DE LOS TOTALES SEGUROS ---
     const listaGastos = Array.isArray(gastos) 
         ? gastos 
         : (gastos && Array.isArray(gastos.gastos) ? gastos.gastos : []);
@@ -53,12 +59,24 @@ const GastosDashboard = () => {
 
     const saldoDisponible = totalIngresos - totalGastos;
 
-    // --- MANEJO DEL FORMULARIO ---
+    // --- MANEJO DEL FORMULARIO INTELIGENTE ---
     const handleChange = (e) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        });
+        const { name, value } = e.target;
+
+        if (name === 'tipo') {
+            // 🧠 SI EL USUARIO CAMBIA EL TIPO, CAMBIAMOS LA CATEGORÍA POR DEFECTO AUTOMÁTICAMENTE
+            setForm({
+                ...form,
+                tipo: value,
+                categoria: value === 'Ingreso' ? 'Sueldo' : 'Comida'
+            });
+        } else {
+            // Comportamiento normal para el resto de campos
+            setForm({
+                ...form,
+                [name]: value
+            });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -75,7 +93,6 @@ const GastosDashboard = () => {
 
             const nuevoGasto = await crearGastoAPI(form, token);
             
-            // Si el backend responde con un objeto envoltorio, extraemos la operación
             const operacionCreada = nuevoGasto?.gasto || nuevoGasto?.transaccion || nuevoGasto;
             
             setGastos([operacionCreada, ...listaGastos]);
@@ -223,7 +240,7 @@ const GastosDashboard = () => {
                                         <option value="Gasto">📉 Gasto</option>
                                         <option value="Ingreso">📈 Ingreso</option>
                                     </select>
-                                        </div>
+                                </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cuenta</label>
                                     <select 
@@ -239,6 +256,7 @@ const GastosDashboard = () => {
                                 </div>
                             </div>
 
+                            {/* 🔄 SELECT DE CATEGORÍAS TOTALMENTE DINÁMICO */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Categoría</label>
                                 <select 
@@ -247,11 +265,20 @@ const GastosDashboard = () => {
                                     onChange={handleChange}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 >
-                                    <option value="Comida">🍴 Comida</option>
-                                    <option value="Vivienda">🏠 Vivienda</option>
-                                    <option value="Transporte">🚗 Transporte</option>
-                                    <option value="Estudios">📚 Estudios</option>
-                                    <option value="Otros">📦 Otros</option>
+                                    {categoriasPorTipo[form.tipo].map((cat) => (
+                                        <option key={cat} value={cat}>
+                                            {cat === 'Sueldo' && '💵 '}
+                                            {cat === 'Inversiones' && '📈 '}
+                                            {cat === 'Negocio' && '💼 '}
+                                            {cat === 'Premios' && '🎁 '}
+                                            {cat === 'Comida' && '🍴 '}
+                                            {cat === 'Vivienda' && '🏠 '}
+                                            {cat === 'Transporte' && '🚗 '}
+                                            {cat === 'Estudios' && '📚 '}
+                                            {cat === 'Otros' && '📦 '}
+                                            {cat}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -264,7 +291,7 @@ const GastosDashboard = () => {
                         </form>
                     </div>
 
-                    {/* 📦 AQUÍ ESTÁ EL BLOQUE 1 QUE ME PREGUNTASTE (Análisis de Gastos) */}
+                    {/* Análisis de Gastos */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col justify-between">
                         <div>
                             <h2 className="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">📊 Análisis de Gastos</h2>
@@ -290,7 +317,7 @@ const GastosDashboard = () => {
                     </div>
                 </div>
 
-                {/* 📋 SECCIÓN DE HISTORIAL Y BOTÓN DE EXCEL */}
+                {/* SECCIÓN DE HISTORIAL Y BOTÓN DE EXCEL */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
                         <div>
@@ -309,7 +336,6 @@ const GastosDashboard = () => {
                         </button>
                     </div>
 
-                    {/* 📦 AQUÍ ESTÁ EL BLOQUE 2 Y 3 (Tabla de movimientos controlada) */}
                     <div className="overflow-x-auto">
                         {listaGastos.length === 0 ? (
                             <div className="text-center py-12">
