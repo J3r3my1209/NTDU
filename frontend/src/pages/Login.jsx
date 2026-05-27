@@ -1,64 +1,53 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { auth, provider } from '../config/firebase'; 
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { auth } from '../config/firebase'; 
 
 export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔄 Capturamos el retorno de Google de forma inmediata y persistente
-  useEffect(() => {
-    let unmounted = false;
+useEffect(() => {
+    /* global google */
+    if (typeof google !== 'undefined') {
+      google.accounts.id.initialize({
+        // 🟢 ID oficial enlazado a tu proyecto de Firebase (ntdu-bcbf2)
+        client_id: "706466995732-n739mdfv6b81j8b6b1o637b3p9m83k6g.apps.googleusercontent.com", 
+        callback: handleCallbackResponse,
+        ux_mode: "popup" 
+      });
 
-    const verificarRetornoDeGoogle = async () => {
-      try {
-        setLoading(true);
-        console.log("🔄 Verificando si vienes regresando de Google...");
-        const result = await getRedirectResult(auth);
-        
-        if (result && !unmounted) {
-          const user = result.user;
-          const token = await user.getIdToken();
-          
-          console.log("🟢 ¡Usuario autenticado con éxito!", user.displayName);
-          
-          // Guardamos con seguridad el token antes de movernos de página
-          localStorage.setItem('token', token);
-          localStorage.setItem('user_name', user.displayName); 
-          
-          // Pequeña pausa de 100ms para asegurar la escritura en disco local antes de saltar
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 100);
-        } else {
-          console.log("ℹ️ No hay sesión pendiente por procesar en esta carga.");
-        }
-      } catch (err) {
-        console.error("❌ Error crítico al procesar el retorno:", err);
-        setError("Error de sincronización con Google. Por favor, intenta de nuevo.");
-      } finally {
-        if (!unmounted) setLoading(false);
-      }
-    };
+      google.accounts.id.renderButton(
+        document.getElementById("googleBtnDiv"),
+        { theme: "outline", size: "large", width: "100%" }
+      );
+    }
+  }, []);
 
-    verificarRetornoDeGoogle();
-
-    return () => {
-      unmounted = true;
-    };
-  }, [navigate]);
-
-  const handleLoginGoogle = async () => {
+  // Esta función recibe el token de Google directo, saltándose el hosting roto de Firebase
+  const handleCallbackResponse = async (response) => {
     try {
-      setError(null);
       setLoading(true);
-      // Redirige en la misma pestaña. ¡Inmune a bloqueadores de popups!
-      await signInWithRedirect(auth, provider);
+      setError(null);
+
+      // Creamos la credencial usando el token nativo que nos dio Google
+      const credential = GoogleAuthProvider.credential(response.credential);
+      
+      // Iniciamos sesión en Firebase de forma inmediata en segundo plano
+      const result = await signInWithCredential(auth, credential);
+      const user = result.user;
+      const token = await user.getIdToken();
+
+      console.log("🟢 Autenticado exitosamente vía Google Identity:", user.displayName);
+      localStorage.setItem('token', token);
+      
+      // Te mandamos directo al dashboard
+      navigate('/dashboard');
     } catch (err) {
-      console.error("❌ Error al iniciar la redirección:", err);
-      setError("No se pudo iniciar la conexión con Google.");
+      console.error("❌ Error al canjear el token en Firebase:", err);
+      setError("No se pudo iniciar sesión con tu cuenta de Google.");
+    } finally {
       setLoading(false);
     }
   };
@@ -114,18 +103,10 @@ export default function Login() {
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
-        <button
-          onClick={handleLoginGoogle}
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-3 font-medium text-gray-700 transition hover:bg-gray-50"
-        >
-          <img 
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-            alt="Google" 
-            className="h-5 w-5" 
-          />
-          {loading ? "Redirigiendo..." : "Continuar con Google"}
-        </button>
+        {/* 🔘 NUEVO CONTENEDOR SEGURO PARA EL BOTÓN OFICIAL DE GOOGLE */}
+        <div className="w-full flex justify-center">
+          <div id="googleBtnDiv" className="w-full"></div>
+        </div>
       </div>
     </div>
   );
