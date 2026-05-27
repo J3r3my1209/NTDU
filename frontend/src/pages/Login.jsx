@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // 🟢 Importamos Link
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../config/firebase'; 
 
@@ -116,6 +116,18 @@ export default function Login() {
         <div className="w-full flex justify-center">
           <div id="googleBtnDiv" className="w-full flex justify-center"></div>
         </div>
+
+        {/* 🟢 LA SOLUCIÓN: Agregamos el link de registro integrado con Tailwind */}
+        <div className="text-center text-sm text-gray-600 pt-2">
+          ¿No tienes una cuenta?{' '}
+          <Link 
+            to="/register" 
+            className="font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
+          >
+            Regístrate de una
+          </Link>
+        </div>
+
       </div>
     </div>
   );
