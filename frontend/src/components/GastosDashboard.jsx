@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-// 🛠️ RUTA DE FIREBASE CORREGIDA QUE TE FUNCIONÓ
 import { auth } from "../config/firebase.js"; 
 // Importamos los servicios de la API
 import { obtenerGastosAPI, crearGastoAPI, eliminarGastoAPI, exportarAExcelAPI } from '../services/gastosService';
@@ -24,24 +23,45 @@ const GastosDashboard = () => {
         categoria: 'Comida'
     });
 
-    // --- CARGAR DATOS AL INICIAR ---
+    // --- CARGAR DATOS AL INICIAR (VERSIÓN OPTIMIZADA) ---
     useEffect(() => {
-        const cargarTransacciones = async () => {
-            try {
-                auth.onAuthStateChanged(async (user) => {
-                    if (user) {
+        let desubscribir = () => {};
+
+        const inicializarPanel = async () => {
+            // 1. Verificación inmediata: si el usuario ya está en memoria local, cargamos directo
+            if (auth.currentUser) {
+                try {
+                    const token = await auth.currentUser.getIdToken();
+                    const data = await obtenerGastosAPI(token);
+                    setGastos(data || []);
+                } catch (error) {
+                    console.error("Error inicial cargando transacciones:", error);
+                } finally {
+                    setLoading(false);
+                }
+                return;
+            }
+
+            // 2. Si aún no se ha instanciado, escuchamos el cambio de estado de sesión de forma segura
+            desubscribir = auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    try {
                         const token = await user.getIdToken();
                         const data = await obtenerGastosAPI(token);
                         setGastos(data || []);
+                    } catch (error) {
+                        console.error("Error asíncrono en onAuthStateChanged:", error);
                     }
-                    setLoading(false);
-                });
-            } catch (error) {
-                console.error("Error al cargar las transacciones:", error);
+                }
+                // Nos aseguramos de liberar siempre la pantalla de carga
                 setLoading(false);
-            }
+            });
         };
-        cargarTransacciones();
+
+        inicializarPanel();
+
+        // Limpieza del listener al desmontar el componente para evitar fugas de memoria
+        return () => desubscribir();
     }, []);
 
     // --- 🛠️ CÁLCULOS DE LOS TOTALES SEGUROS ---
@@ -64,14 +84,12 @@ const GastosDashboard = () => {
         const { name, value } = e.target;
 
         if (name === 'tipo') {
-            // 🧠 SI EL USUARIO CAMBIA EL TIPO, CAMBIAMOS LA CATEGORÍA POR DEFECTO AUTOMÁTICAMENTE
             setForm({
                 ...form,
                 tipo: value,
                 categoria: value === 'Ingreso' ? 'Sueldo' : 'Comida'
             });
         } else {
-            // Comportamiento normal para el resto de campos
             setForm({
                 ...form,
                 [name]: value
@@ -88,11 +106,10 @@ const GastosDashboard = () => {
 
         try {
             const user = auth.currentUser;
-            if (!user) return alert("Sesión inválida");
+            if (!user) return alert("Sesión inválida o expirada");
             const token = await user.getIdToken();
 
             const nuevoGasto = await crearGastoAPI(form, token);
-            
             const operacionCreada = nuevoGasto?.gasto || nuevoGasto?.transaccion || nuevoGasto;
             
             setGastos([operacionCreada, ...listaGastos]);
@@ -160,10 +177,14 @@ const GastosDashboard = () => {
         }
     };
 
+    // --- VISTA DE CARGA SEGURA ---
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen bg-gray-50">
-                <p className="text-gray-600 font-medium animate-pulse">Cargando tu panel financiero...</p>
+            <div className="flex justify-center items-center h-[60vh] bg-gray-50">
+                <div className="text-center space-y-2">
+                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-gray-600 font-medium text-sm">Sincronizando tu panel financiero...</p>
+                </div>
             </div>
         );
     }
@@ -256,7 +277,6 @@ const GastosDashboard = () => {
                                 </div>
                             </div>
 
-                            {/* 🔄 SELECT DE CATEGORÍAS TOTALMENTE DINÁMICO */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Categoría</label>
                                 <select 
