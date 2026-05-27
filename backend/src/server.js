@@ -11,8 +11,15 @@ import { readFileSync } from 'fs';
 dotenv.config();
 conectarDB();
 
-// 2. Inicializar Firebase Admin
-const firebaseConfig = JSON.parse(readFileSync('./firebase-keys.json', 'utf8'));
+// 2. Inicializar Firebase Admin (Seguro para Local y Render)
+let firebaseConfig;
+
+if (process.env.FIREBASE_KEYS_JSON) {
+    firebaseConfig = JSON.parse(process.env.FIREBASE_KEYS_JSON);
+} else {
+    firebaseConfig = JSON.parse(readFileSync('./firebase-keys.json', 'utf8'));
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(firebaseConfig)
 });
