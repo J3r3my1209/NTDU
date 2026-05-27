@@ -1,52 +1,53 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
-// 🟢 Importación corregida y segura para Vite
-import { auth, provider } from '../config/firebase';
+// 🚀 Cambiamos a los métodos oficiales de redirección
+import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { auth, provider } from '../config/firebase'; 
 
 export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-const handleLoginGoogle = async () => {
-    // 1️⃣ ABRIR VENTANA INMEDIATAMENTE: Chrome lo permite porque ocurre al instante del clic
-    const proxyWindow = window.open('', '_blank', 'width=500,height=600');
-    
-    if (!proxyWindow) {
-      setError("El navegador bloqueó la ventana de forma estricta. Por favor revisa los permisos.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // 2️⃣ PASAR LA VENTANA A FIREBASE: Usamos una propiedad oculta para que Firebase inicie allí
-      auth._popupRedirectResolver = undefined; // Limpia resolvers previos si los hay
-      
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const token = await user.getIdToken();
-      
-      console.log("🟢 Autenticado correctamente:", user.displayName);
-      localStorage.setItem('token', token);
-      
-      // Si todo sale bien, cerramos manualmente si quedó abierta o redirigimos
-      proxyWindow.close();
-      navigate('/dashboard'); 
-
-    } catch (err) {
-      console.error("❌ Detalle del error de Google:", err);
-      // Cerramos la ventana vacía si falló el proceso
-      if (proxyWindow) proxyWindow.close();
-      
-      if (err.code === 'auth/popup-blocked') {
-        setError("El navegador bloqueó la ventana. Intenta usar una pestaña de incógnito.");
-      } else {
-        setError("Error al conectar con Google. Inténtalo de nuevo.");
+  // 🔄 Este efecto corre al cargar la página y detecta si el usuario viene regresando de Google
+  useEffect(() => {
+    const verificarRetornoDeGoogle = async () => {
+      try {
+        setLoading(true);
+        const result = await getRedirectResult(auth);
+        
+        if (result) {
+          // ¡Login completado con éxito!
+          const user = result.user;
+          const token = await user.getIdToken();
+          
+          console.log("🟢 Login exitoso desde redirección:", user.displayName);
+          localStorage.setItem('token', token);
+          
+          // Te envía directo al dashboard
+          navigate('/dashboard'); 
+        }
+      } catch (err) {
+        console.error("❌ Error al procesar el retorno de Google:", err);
+        setError("No se pudo procesar el inicio de sesión al regresar.");
+      } finally {
+        setLoading(false);
       }
-    } finally {
+    };
+
+    verificarRetornoDeGoogle();
+  }, [navigate]);
+
+  const handleLoginGoogle = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // 🚀 Redirige en la misma pestaña. ¡Inmune a bloqueadores de popups!
+      await signInWithRedirect(auth, provider);
+    } catch (err) {
+      console.error("❌ Error al iniciar la redirección:", err);
+      setError("No se pudo iniciar la conexión con Google.");
       setLoading(false);
     }
   };
@@ -92,7 +93,7 @@ const handleLoginGoogle = async () => {
             className="w-full rounded-lg bg-black p-3 font-semibold text-white transition hover:bg-gray-800"
             disabled={loading}
           >
-            Entrar de Una
+            {loading ? "Cargando..." : "Entrar de Una"}
           </button>
         </form>
 
@@ -112,7 +113,7 @@ const handleLoginGoogle = async () => {
             alt="Google" 
             className="h-5 w-5" 
           />
-          {loading ? "Conectando..." : "Continuar con Google"}
+          {loading ? "Redirigiendo..." : "Continuar con Google"}
         </button>
       </div>
     </div>
