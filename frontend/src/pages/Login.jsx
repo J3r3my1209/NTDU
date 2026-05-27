@@ -9,12 +9,22 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLoginGoogle = async () => {
+const handleLoginGoogle = async () => {
+    // 1️⃣ ABRIR VENTANA INMEDIATAMENTE: Chrome lo permite porque ocurre al instante del clic
+    const proxyWindow = window.open('', '_blank', 'width=500,height=600');
+    
+    if (!proxyWindow) {
+      setError("El navegador bloqueó la ventana de forma estricta. Por favor revisa los permisos.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      // Abre el popup oficial de Firebase con los dominios originales recuperados
+      // 2️⃣ PASAR LA VENTANA A FIREBASE: Usamos una propiedad oculta para que Firebase inicie allí
+      auth._popupRedirectResolver = undefined; // Limpia resolvers previos si los hay
+      
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       const token = await user.getIdToken();
@@ -22,13 +32,17 @@ export default function Login() {
       console.log("🟢 Autenticado correctamente:", user.displayName);
       localStorage.setItem('token', token);
       
-      // Te redirige directamente a tu panel de control
+      // Si todo sale bien, cerramos manualmente si quedó abierta o redirigimos
+      proxyWindow.close();
       navigate('/dashboard'); 
 
     } catch (err) {
       console.error("❌ Detalle del error de Google:", err);
+      // Cerramos la ventana vacía si falló el proceso
+      if (proxyWindow) proxyWindow.close();
+      
       if (err.code === 'auth/popup-blocked') {
-        setError("El navegador bloqueó la ventana. Por favor, habilita los permisos de ventanas emergentes para este sitio.");
+        setError("El navegador bloqueó la ventana. Intenta usar una pestaña de incógnito.");
       } else {
         setError("Error al conectar con Google. Inténtalo de nuevo.");
       }
