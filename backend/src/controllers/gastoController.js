@@ -19,7 +19,6 @@ export const obtenerGastos = async (req, res) => {
 // 💾 2. CREAR GASTO
 export const crearGasto = async (req, res) => {
     try {
-        // 🟢 Respaldo de seguridad
         if (!req.user || !req.user.uid) {
             return res.status(401).json({ mensaje: 'No se pudo identificar al usuario autenticado' });
         }
@@ -39,7 +38,9 @@ export const crearGasto = async (req, res) => {
         res.status(201).json(gastoGuardado);
     } catch (error) {
         console.error('Error al crear la transacción:', error);
-        res.status(500).json({ mensaje: 'Error interno al intentar guardar el movimiento' });
+        
+        // 🟢 CAMBIA ESTA LÍNEA TEMPORALMENTE:
+        res.status(500).json({ mensaje: 'Error interno', detalle: error.message });
     }
 };
 
