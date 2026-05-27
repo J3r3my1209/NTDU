@@ -1,143 +1,144 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../config/firebase';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+// 🚀 Importamos las funciones necesarias para la redirección segura
+import { 
+  signInWithRedirect, 
+  getRedirectResult, 
+  GoogleAuthProvider 
+} from 'firebase/auth';
+// Importa tu instancia de 'auth' desde donde tengas configurado Firebase en tu frontend
+import { auth } from '../firebase/firebaseConfig'; 
 
-export const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+export default function Login() {
   const navigate = useNavigate();
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const provider = new GoogleAuthProvider();
 
-  const sincronizarConBackend = async (usuarioFirebase) => {
-    const token = await usuarioFirebase.getIdToken();
-    const respuesta = await fetch("http://localhost:3001/api/usuarios/auth-sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+  // 🔄 Este useEffect escucha automáticamente cuando el usuario regresa de Google
+  useEffect(() => {
+    const verificarRetornoGoogle = async () => {
+      try {
+        setLoading(true);
+        const result = await getRedirectResult(auth);
+        
+        if (result) {
+          // El usuario acaba de iniciar sesión con éxito tras ser redirigido
+          const user = result.user;
+          const token = await user.getIdToken();
+          
+          console.log("🟢 Login con Google exitoso:", user.displayName);
+          
+          // Aquí puedes guardar el token en el localStorage o enviarlo a tu backend en Render
+          localStorage.setItem('token', token);
+          
+          // Rediriges al usuario al dashboard o inicio de la app
+          navigate('/dashboard'); 
+        }
+      } catch (err) {
+        console.error("❌ Error al procesar el retorno de Google:", err);
+        setError("No se pudo completar el inicio de sesión con Google.");
+      } finally {
+        setLoading(false);
       }
-    });
-    const datos = await respuesta.json();
-    if (!respuesta.ok) {
-      throw new Error(datos.msg || "Error en la sincronización con el servidor");
-    }
-    localStorage.setItem('token_gasto_app', token);
-    return datos;
-  };
+    };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(null);
+    verificarRetornoGoogle();
+  }, [navigate]);
 
-    if ([email, password].includes('')) {
-      setError('Todos los campos son obligatorios.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-
+  // 🚪 Función que se ejecuta al presionar el botón
+  const handleLoginGoogle = () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await sincronizarConBackend(userCredential.user);
-      navigate('/');
+      setError(null);
+      // Redirige al usuario en la misma pestaña
+      signInWithRedirect(auth, provider);
     } catch (err) {
-      console.error(err.message);
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        setError('Correo o contraseña incorrectos.');
-      } else {
-        setError(err.message || 'Error al iniciar sesión.');
-      }
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setError(null);
-    try {
-      const userCredential = await signInWithPopup(auth, googleProvider);
-      await sincronizarConBackend(userCredential.user);
-      navigate('/');
-    } catch (err) {
-      console.error("Error con Google:", err.message);
-      setError('No se pudo iniciar sesión con Google.');
+      console.error("❌ Error al iniciar la redirección:", err);
+      setError("No se pudo iniciar la autenticación con Google.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F8F9FA]">
-      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-        <div className="text-center mb-8">
-          <span className="text-4xl">💸</span>
-          <h2 className="text-2xl font-bold mt-4">Ingresa a tu cuenta</h2>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-8 shadow-lg">
+        {/* Encabezado */}
+        <div className="text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl">
+            💵
+          </div>
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-gray-900">
+            Ingresa a tu cuenta
+          </h2>
         </div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <input
-            type="email"
-            placeholder="Correo electrónico"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#00E56A] focus:ring-1 focus:ring-[#00E56A]"
-          />
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#00E56A] focus:ring-1 focus:ring-[#00E56A]"
-          />
-
-          {/* LINK DE RECUPERACIÓN DE CONTRASEÑA */}
-          <div className="text-right -mt-2">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-gray-500 hover:text-[#00E56A] hover:underline transition-colors"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
+        {/* Formulario tradicional (Correo / Contraseña) */}
+        <form className="mt-8 space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <div>
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-emerald-500"
+              required
+            />
+          </div>
+          <div>
+            <input
+              type="password"
+              placeholder="Contraseña"
+              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-emerald-500"
+              required
+            />
           </div>
 
-          {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
+          <div className="text-right">
+            <a href="#" className="text-sm text-gray-500 hover:underline">
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
+
+          {/* Mensaje de error dinámico */}
+          {error && (
+            <p className="text-center text-sm font-semibold text-red-500 animate-pulse">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
-            className="w-full mt-2 bg-black text-white font-semibold py-3 rounded-lg hover:bg-gray-800 transition-colors"
+            className="w-full rounded-lg bg-black p-3 font-semibold text-white transition hover:bg-gray-800"
+            disabled={loading}
           >
-            Entrar de Una
+            {loading ? "Cargando..." : "Entrar de Una"}
           </button>
         </form>
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-200"></span>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-2 text-gray-500">O también</span>
-          </div>
+        <div className="relative flex py-5 items-center">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="mx-4 flex-shrink text-xs text-gray-400 uppercase">O también</span>
+          <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
+        {/* 🔘 BOTÓN DE GOOGLE ACTUALIZADO */}
         <button
-          onClick={handleGoogleLogin}
-          type="button"
-          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition-all font-medium"
+          onClick={handleLoginGoogle}
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-3 font-medium text-gray-700 transition hover:bg-gray-50"
         >
-          <img
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-            alt="Google"
-            className="w-5 h-5"
+          <img 
+            src="https://docs.genezio.com/img/google.svg" 
+            alt="Google" 
+            className="h-5 w-5" 
           />
-          Continuar con Google
+          {loading ? "Procesando..." : "Continuar con Google"}
         </button>
 
-        <p className="text-center mt-6 text-sm text-gray-600">
+        <p className="text-center text-sm text-gray-600">
           ¿No tienes cuenta?{' '}
-          <Link to="/register" className="text-[#00E56A] font-bold hover:underline">
+          <span className="cursor-pointer font-bold text-emerald-500 hover:underline" onClick={() => navigate('/registro')}>
             Regístrate aquí
-          </Link>
+          </span>
         </p>
       </div>
     </div>
   );
-};
+}
