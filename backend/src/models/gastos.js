@@ -1,7 +1,6 @@
 import { Schema, model } from 'mongoose';
 
 const transaccionSchema = new Schema({
-    // 🟢 CORREGIDO: Cambiado a String para almacenar los UIDs de Firebase de forma persistente
     usuarioId: {
         type: String, 
         required: [true, 'El ID de usuario de Firebase es obligatorio']

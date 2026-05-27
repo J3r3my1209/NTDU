@@ -3,8 +3,6 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBLKyNzrPBj0jQjD2Fvc8EILqUMhYTBalY",
-  // 🟢 CAMBIO ESTRATÉGICO: Usamos el dominio alternativo seguro de Google Auth 
-  // Esto evita que busque el archivo 'init.json' en tu hosting vacío
   authDomain: "ntdu-bcbf2.firebaseapp.com", 
   projectId: "ntdu-bcbf2",
   storageBucket: "ntdu-bcbf2.firebasestorage.app",
@@ -17,7 +15,6 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app); 
 
 export const provider = new GoogleAuthProvider();
-// 🟢 Forzar a que Google siempre pida seleccionar la cuenta al redireccionar
 provider.setCustomParameters({
   prompt: 'select_account'
 });

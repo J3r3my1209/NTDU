@@ -24,7 +24,7 @@ admin.initializeApp({
   credential: admin.credential.cert(firebaseConfig)
 });
 
-// 3. ⚠️ CREAR LA APP PRIMERO (Esto soluciona el error)
+// 3. CREAR LA APP PRIMERO (Esto soluciona el error)
 const app = express();
 
 // 4. Middlewares globales

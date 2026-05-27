@@ -1,6 +1,6 @@
 import Gasto from '../models/gastos.js'; // Asegúrate de apuntar bien a tu modelo
 
-// 🔍 1. OBTENER GASTOS
+// 1. OBTENER GASTOS
 export const obtenerGastos = async (req, res) => {
     try {
         // 🟢 Respaldo de seguridad: si req.user no existe, frena antes de leer el .uid
@@ -16,7 +16,7 @@ export const obtenerGastos = async (req, res) => {
     }
 };
 
-// 💾 2. CREAR GASTO
+// 2. CREAR GASTO
 export const crearGasto = async (req, res) => {
     try {
         if (!req.user || !req.user.uid) {
@@ -44,7 +44,7 @@ export const crearGasto = async (req, res) => {
     }
 };
 
-// ✏️ 3. ACTUALIZAR GASTO
+// 3. ACTUALIZAR GASTO
 export const actualizarGasto = async (req, res) => {
     try {
         const { id } = req.params;
@@ -60,7 +60,7 @@ export const actualizarGasto = async (req, res) => {
     }
 };
 
-// ❌ 4. ELIMINAR GASTO
+// 4. ELIMINAR GASTO
 export const eliminarGasto = async (req, res) => {
     try {
         const { id } = req.params;

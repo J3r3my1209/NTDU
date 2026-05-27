@@ -18,7 +18,7 @@ const usuarioSchema = new Schema({
         lowercase: true
     }
 }, {
-    timestamps: true // Esto crea automáticamente createdAt y updatedAt en la base de datos
+    timestamps: true
 });
 
 export default model('Usuario', usuarioSchema);

@@ -21,7 +21,6 @@ export const exportarAExcel = async (req, res) => {
             { header: 'Fecha', key: 'fecha', width: 15 }
         ];
 
-        // Estilo profesional para la fila de encabezados (Verde Esmeralda premium)
         const headerRow = worksheet.getRow(1);
         headerRow.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFF' } };
         headerRow.fill = {
@@ -49,11 +48,9 @@ export const exportarAExcel = async (req, res) => {
                 fecha: fechaFormateada
             });
 
-            // Estilo de fuente general para los datos
             fila.font = { name: 'Segoe UI', size: 10 };
             fila.height = 20;
 
-            // Celdas específicas: Alinear montos a la derecha y aplicar color por tipo
             const celdaMonto = fila.getCell('monto');
             const celdaTipo = fila.getCell('tipo');
 
@@ -65,7 +62,6 @@ export const exportarAExcel = async (req, res) => {
                 celdaTipo.font = { name: 'Segoe UI', color: { argb: '16A34A' } };
             }
 
-            // Zebra striping (filas alternas grisáceas sutiles para legibilidad)
             if (index % 2 === 1) {
                 fila.fill = {
                     type: 'pattern',
@@ -84,11 +80,9 @@ export const exportarAExcel = async (req, res) => {
         });
 
         // 5. Agregar Fila de Totales con fórmulas reales de Excel de forma dinámica
-        // Ajuste seguro: si no hay transacciones, el índice inicial base será la fila 3
         const totalFilaIndex = listaTransacciones.length > 0 ? listaTransacciones.length + 3 : 3;
-        worksheet.spliceRows(totalFilaIndex, 0, []); // Fila en blanco de separación
+        worksheet.spliceRows(totalFilaIndex, 0, []);
 
-        // Escribir etiquetas de totales usando fórmulas de Excel
         worksheet.getCell(`A${totalFilaIndex}`).value = 'RESUMEN DE CUENTA';
         worksheet.getCell(`A${totalFilaIndex}`).font = { name: 'Segoe UI', bold: true, size: 11 };
 
@@ -110,13 +104,12 @@ export const exportarAExcel = async (req, res) => {
             'attachment; filename=Reporte_Financiero_NoTanDeUna.xlsx'
         );
 
-        // Enviar el archivo de vuelta al cliente de manera fluida
         await workbook.xlsx.write(res);
         res.end();
 
     } catch (error) {
         console.error('Error al generar el Excel:', error);
-        // Si hay error y las cabeceras no se han enviado, responde con JSON estructurado
+
         if (!res.headersSent) {
             res.status(500).json({ mensaje: 'Error interno al compilar el reporte de Excel' });
         }

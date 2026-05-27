@@ -7,15 +7,15 @@ const router = express.Router();
 
 router.use(checkFirebaseAuth);
 
-// 📥 Ruta estática prioritaria
+// Ruta estática prioritaria
 router.get('/exportar/excel', exportarAExcel);
 
-// 📋 Rutas base de la API
+// Rutas base de la API
 router.route('/')
     .get(obtenerGastos)
     .post(crearGasto);
 
-// 🆔 Rutas con parámetros dinámicos al final
+// Rutas con parámetros dinámicos al final
 router.route('/:id')
     .put(actualizarGasto)
     .delete(eliminarGasto);

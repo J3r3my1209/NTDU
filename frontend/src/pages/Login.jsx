@@ -15,16 +15,11 @@ export default function Login() {
         google.accounts.id.initialize({
           client_id: "706466995732-bn39dkemlfd71c64s3pgd6ibjtu89a4l.apps.googleusercontent.com", 
           callback: handleCallbackResponse,
-          // 🟢 SOLUCIÓN MAESTRA: Activamos FedCM para que Chrome maneje el flujo 
-          // a nivel de navegador y devuelva la credencial directo a la consola,
-          // evitando por completo el POST roto (Error 405) de Vercel.
           use_fedcm: true 
         });
 
-        // Esto dibuja automáticamente el prompt flotante arriba a la derecha si ya estás logueado en Chrome
         google.accounts.id.prompt();
 
-        // Renderizamos el botón clásico abajo por si no se activa el prompt automático
         google.accounts.id.renderButton(
           document.getElementById("googleBtnDiv"),
           { theme: "outline", size: "large", width: 350 } 
@@ -40,10 +35,8 @@ export default function Login() {
       setLoading(true);
       setError(null);
 
-      // Recibimos la credencial encapsulada de forma interna
       const credential = GoogleAuthProvider.credential(response.credential);
-      
-      // Validamos e iniciamos sesión dentro de Firebase sin salir de la página
+
       const result = await signInWithCredential(auth, credential);
       const user = result.user;
       const token = await user.getIdToken();
@@ -117,7 +110,7 @@ export default function Login() {
           <div id="googleBtnDiv" className="w-full flex justify-center"></div>
         </div>
 
-        {/* 🟢 LA SOLUCIÓN: Agregamos el link de registro integrado con Tailwind */}
+        {/**/}
         <div className="text-center text-sm text-gray-600 pt-2">
           ¿No tienes una cuenta?{' '}
           <Link 

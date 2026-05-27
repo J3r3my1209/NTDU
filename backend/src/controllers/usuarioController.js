@@ -4,7 +4,6 @@ import Usuario from '../models/usuario.js';
 // Reemplaza a 'registrar' y 'autenticar' tradicionales porque Firebase ya valida las credenciales.
 const autenticarOSincronizarUsuario = async (req, res) => {
     try {
-        // 'req.usuario' ya viene validado y cargado desde tu middleware 'checkFirebaseAuth'
         res.status(200).json({
             msg: "Usuario autenticado y sincronizado con éxito en MongoDB Atlas",
             usuario: req.usuario
@@ -17,7 +16,6 @@ const autenticarOSincronizarUsuario = async (req, res) => {
 
 // 2. Ver Perfil (Requerimiento del Sprint 1)
 const perfil = async (req, res) => {
-    // Al pasar por el middleware, los datos limpios de la BDD ya están disponibles
     if (!req.usuario) {
         return res.status(404).json({ msg: "Usuario no encontrado." });
     }
@@ -25,15 +23,12 @@ const perfil = async (req, res) => {
 };
 
 // 3. Actualizar Perfil (Requerimiento del Sprint 1)
-// Implementa las validaciones de backend exigidas por el docente
 const actualizarPerfil = async (req, res) => {
     const { nombre, email } = req.body;
 
-    // --- VALIDACIONES DEL BACKEND ---
     if (!nombre || !email) {
         return res.status(400).json({ msg: "Todos los campos (nombre y email) son obligatorios." });
     }
-
     // Validación de formato de email simple
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {

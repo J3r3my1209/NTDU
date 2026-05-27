@@ -14,8 +14,7 @@ const checkFirebaseAuth = async (req, res, next) => {
         // 2. Verificar el token directamente con Firebase Admin
         const decodedToken = await admin.auth().verifyIdToken(token);
 
-        // 3. 🚨 AQUÍ ESTÁ EL TRUCO: Inyectamos el token decodificado en req.user
-        // Firebase guarda el identificador único en decodedToken.uid
+        // 3. Firebase guarda el identificador único en decodedToken.uid
         req.user = decodedToken; 
 
         // Continúa al siguiente controlador de forma segura
