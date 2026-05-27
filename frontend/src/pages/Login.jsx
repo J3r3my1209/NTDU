@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 🚀 Cambiamos a los métodos oficiales de redirección
 import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, provider } from '../config/firebase'; 
 
@@ -9,41 +8,53 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔄 Este efecto corre al cargar la página y detecta si el usuario viene regresando de Google
+  // 🔄 Capturamos el retorno de Google de forma inmediata y persistente
   useEffect(() => {
+    let unmounted = false;
+
     const verificarRetornoDeGoogle = async () => {
       try {
         setLoading(true);
+        console.log("🔄 Verificando si vienes regresando de Google...");
         const result = await getRedirectResult(auth);
         
-        if (result) {
-          // ¡Login completado con éxito!
+        if (result && !unmounted) {
           const user = result.user;
           const token = await user.getIdToken();
           
-          console.log("🟢 Login exitoso desde redirección:", user.displayName);
-          localStorage.setItem('token', token);
+          console.log("🟢 ¡Usuario autenticado con éxito!", user.displayName);
           
-          // Te envía directo al dashboard
-          navigate('/dashboard'); 
+          // Guardamos con seguridad el token antes de movernos de página
+          localStorage.setItem('token', token);
+          localStorage.setItem('user_name', user.displayName); 
+          
+          // Pequeña pausa de 100ms para asegurar la escritura en disco local antes de saltar
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 100);
+        } else {
+          console.log("ℹ️ No hay sesión pendiente por procesar en esta carga.");
         }
       } catch (err) {
-        console.error("❌ Error al procesar el retorno de Google:", err);
-        setError("No se pudo procesar el inicio de sesión al regresar.");
+        console.error("❌ Error crítico al procesar el retorno:", err);
+        setError("Error de sincronización con Google. Por favor, intenta de nuevo.");
       } finally {
-        setLoading(false);
+        if (!unmounted) setLoading(false);
       }
     };
 
     verificarRetornoDeGoogle();
+
+    return () => {
+      unmounted = true;
+    };
   }, [navigate]);
 
   const handleLoginGoogle = async () => {
     try {
       setError(null);
       setLoading(true);
-      
-      // 🚀 Redirige en la misma pestaña. ¡Inmune a bloqueadores de popups!
+      // Redirige en la misma pestaña. ¡Inmune a bloqueadores de popups!
       await signInWithRedirect(auth, provider);
     } catch (err) {
       console.error("❌ Error al iniciar la redirección:", err);
