@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
+// 🚀 Importamos los métodos para redirección nativa
+import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
+// Importamos 'auth' y 'provider' de tu archivo de configuración
 import { auth, provider } from '../config/firebase.js'; 
 
 export default function Login() {
@@ -8,31 +10,44 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLoginGoogle = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // 🟢 Abre la ventana emergente oficial de Firebase
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const token = await user.getIdToken();
-      
-      console.log("🟢 Login exitoso con Google:", user.displayName);
-      localStorage.setItem('token', token);
-      
-      // Redirige al inicio de tu app
-      navigate('/dashboard'); 
-    } catch (err) {
-      console.error("❌ Error con Google:", err);
-      // Si el navegador bloquea el popup, le avisamos amigablemente al usuario
-      if (err.code === 'auth/popup-blocked') {
-        setError("Por favor, permite las ventanas emergentes en tu navegador para iniciar sesión.");
-      } else {
-        setError("No se pudo iniciar sesión con Google.");
+  // 🔄 Este useEffect detecta automáticamente cuando el usuario vuelve de Google
+  useEffect(() => {
+    const comprobarRetornoDeGoogle = async () => {
+      try {
+        setLoading(true);
+        const result = await getRedirectResult(auth);
+        
+        if (result) {
+          // ¡Login exitoso tras la redirección!
+          const user = result.user;
+          const token = await user.getIdToken();
+          
+          console.log("🟢 Login con Google exitoso:", user.displayName);
+          localStorage.setItem('token', token);
+          
+          // Te manda a tu pantalla principal
+          navigate('/dashboard'); 
+        }
+      } catch (err) {
+        console.error("❌ Error al procesar el retorno de Google:", err);
+        setError("Ocurrió un error al regresar de la autenticación.");
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
+    };
+
+    comprobarRetornoDeGoogle();
+  }, [navigate]);
+
+  // 🚪 Función del botón
+  const handleLoginGoogle = () => {
+    try {
+      setError(null);
+      // Redirige en la misma pestaña. ¡Inmune a los bloqueadores de pop-ups!
+      signInWithRedirect(auth, provider);
+    } catch (err) {
+      console.error("❌ Error al iniciar redirección:", err);
+      setError("No se pudo conectar con Google.");
     }
   };
 
@@ -81,8 +96,9 @@ export default function Login() {
           <button
             type="submit"
             className="w-full rounded-lg bg-black p-3 font-semibold text-white transition hover:bg-gray-800"
+            disabled={loading}
           >
-            Entrar de Una
+            {loading ? "Cargando..." : "Entrar de Una"}
           </button>
         </form>
 
@@ -92,7 +108,6 @@ export default function Login() {
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
-        {/* 🔘 BOTÓN DE GOOGLE CORREGIDO */}
         <button
           onClick={handleLoginGoogle}
           disabled={loading}
@@ -103,7 +118,7 @@ export default function Login() {
             alt="Google" 
             className="h-5 w-5" 
           />
-          {loading ? "Cargando..." : "Continuar con Google"}
+          {loading ? "Procesando..." : "Continuar con Google"}
         </button>
 
         <p className="text-center text-sm text-gray-600">
