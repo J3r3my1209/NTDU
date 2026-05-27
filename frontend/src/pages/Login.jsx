@@ -1,50 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { auth, provider } from '../config/firebase'; 
+import { signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../firebase/firebase'; 
 
 export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Escucha cuando el usuario regresa de loguearse en Google
-  useEffect(() => {
-    const verificarRetorno = async () => {
-      try {
-        setLoading(true);
-        const result = await getRedirectResult(auth);
-        if (result) {
-          const user = result.user;
-          const token = await user.getIdToken();
-          
-          console.log("🟢 Autenticado con éxito:", user.displayName);
-          localStorage.setItem('token', token);
-          navigate('/dashboard'); 
-        }
-      } catch (err) {
-        console.error("❌ Error en el retorno:", err);
-        // Si sale un error de dominio, mostramos una alerta clara
-        if (err.code === 'auth/auth-domain-config-required') {
-          setError("Error de configuración de dominio en Firebase.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verificarRetorno();
-  }, [navigate]);
-
   const handleLoginGoogle = async () => {
     try {
-      setError(null);
       setLoading(true);
-      // Ejecuta la redirección usando el nuevo dominio seguro
-      await signInWithRedirect(auth, provider);
+      setError(null);
+
+      // 🔥 Forzamos la autenticación limpia mediante Popup nativo
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const token = await user.getIdToken();
+      
+      console.log("🟢 Autenticado en producción:", user.displayName);
+      localStorage.setItem('token', token);
+      navigate('/dashboard'); 
+
     } catch (err) {
-      console.error("❌ Error al redireccionar:", err);
-      setError("No se pudo conectar con Google.");
+      console.error("❌ Detalle del error de Google:", err);
+      
+      if (err.code === 'auth/popup-blocked') {
+        setError("El navegador bloqueó la ventana. Por favor, haz clic en el icono de bloqueo en la barra de direcciones arriba y permite los pop-ups.");
+      } else {
+        setError("Error al conectar con Google. Por favor, intenta de nuevo.");
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -80,7 +66,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <p className="text-center text-sm font-semibold text-red-500 animate-pulse">
+            <p className="text-center text-sm font-semibold text-red-500 bg-red-50 p-2 rounded-lg my-2">
               {error}
             </p>
           )}
@@ -90,7 +76,7 @@ export default function Login() {
             className="w-full rounded-lg bg-black p-3 font-semibold text-white transition hover:bg-gray-800"
             disabled={loading}
           >
-            {loading ? "Cargando..." : "Entrar de Una"}
+            Entrar de Una
           </button>
         </form>
 
@@ -110,7 +96,7 @@ export default function Login() {
             alt="Google" 
             className="h-5 w-5" 
           />
-          {loading ? "Redirigiendo a Google..." : "Continuar con Google"}
+          {loading ? "Conectando..." : "Continuar con Google"}
         </button>
       </div>
     </div>
