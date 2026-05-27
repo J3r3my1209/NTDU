@@ -14,8 +14,9 @@ useEffect(() => {
       google.accounts.id.initialize({
         client_id: "706466995732-bn39dkemlfd71c64s3pgd6ibjtu89a4l.apps.googleusercontent.com", 
         callback: handleCallbackResponse,
-        // 🟢 Volvemos a modo popup nativo (inmune a bloqueadores) para evitar el salto de página
-        ux_mode: "popup" 
+        // 🚀 CAMBIO ESTRATÉGICO: Forzamos la redirección nativa en la misma pestaña
+        ux_mode: "redirect", 
+        login_uri: "https://ntdu.vercel.app/login"
       });
 
       google.accounts.id.renderButton(
@@ -25,28 +26,27 @@ useEffect(() => {
     }
   }, []);
 
-  // Esta función recibe el token de Google directo, saltándose el hosting roto de Firebase
-  const handleCallbackResponse = async (response) => {
+const handleCallbackResponse = async (response) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Creamos la credencial usando el token nativo que nos dio Google
+      // Extraemos la credencial segura devuelta por la redirección de Google
       const credential = GoogleAuthProvider.credential(response.credential);
       
-      // Iniciamos sesión en Firebase de forma inmediata en segundo plano
+      // Iniciamos sesión en Firebase usando el token verificado
       const result = await signInWithCredential(auth, credential);
       const user = result.user;
       const token = await user.getIdToken();
 
-      console.log("🟢 Autenticado exitosamente vía Google Identity:", user.displayName);
+      console.log("🟢 Autenticación exitosa:", user.displayName);
       localStorage.setItem('token', token);
       
-      // Te mandamos directo al dashboard
+      // Redirección inmediata al Dashboard sin esperas catastróficas
       navigate('/dashboard');
     } catch (err) {
-      console.error("❌ Error al canjear el token en Firebase:", err);
-      setError("No se pudo iniciar sesión con tu cuenta de Google.");
+      console.error("❌ Error en canje de credencial:", err);
+      setError("Error de sincronización con Google Identity.");
     } finally {
       setLoading(false);
     }
