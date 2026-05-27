@@ -7,7 +7,7 @@ import {
   GoogleAuthProvider 
 } from 'firebase/auth';
 // Importa tu instancia de 'auth' desde donde tengas configurado Firebase en tu frontend
-import { auth } from '../firebase/firebaseConfig'; 
+import { auth } from '../config/firebase.js'; 
 
 export default function Login() {
   const navigate = useNavigate();
