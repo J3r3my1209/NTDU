@@ -12,15 +12,17 @@ useEffect(() => {
     /* global google */
     if (typeof google !== 'undefined') {
       google.accounts.id.initialize({
-        // 🟢 ID oficial enlazado a tu proyecto de Firebase (ntdu-bcbf2)
-        client_id: "706466995732-n739mdfv6b81j8b6b1o637b3p9m83k6g.apps.googleusercontent.com", 
+        client_id: "706466995732-bn39dkemlfd71c64s3pgd6ibjtu89a4l.apps.googleusercontent.com", 
         callback: handleCallbackResponse,
-        ux_mode: "popup" 
+        // 🔄 CAMBIO DE UX: Usamos 'redirect' para que no intente abrir popups bloqueados
+        ux_mode: "redirect", 
+        login_uri: "https://ntdu.vercel.app/login"
       });
 
       google.accounts.id.renderButton(
         document.getElementById("googleBtnDiv"),
-        { theme: "outline", size: "large", width: "100%" }
+        // 🟢 CORRECCIÓN: El ancho debe ser un número entero (en píxeles), no "100%"
+        { theme: "outline", size: "large", width: 350 } 
       );
     }
   }, []);
