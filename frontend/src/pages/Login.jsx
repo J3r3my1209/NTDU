@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../firebase/firebase'; 
+// 🟢 Importación corregida y segura para Vite
+import { auth, provider } from '../config/firebase';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,22 +14,23 @@ export default function Login() {
       setLoading(true);
       setError(null);
 
-      // 🔥 Forzamos la autenticación limpia mediante Popup nativo
+      // Abre el popup oficial de Firebase con los dominios originales recuperados
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       const token = await user.getIdToken();
       
-      console.log("🟢 Autenticado en producción:", user.displayName);
+      console.log("🟢 Autenticado correctamente:", user.displayName);
       localStorage.setItem('token', token);
+      
+      // Te redirige directamente a tu panel de control
       navigate('/dashboard'); 
 
     } catch (err) {
       console.error("❌ Detalle del error de Google:", err);
-      
       if (err.code === 'auth/popup-blocked') {
-        setError("El navegador bloqueó la ventana. Por favor, haz clic en el icono de bloqueo en la barra de direcciones arriba y permite los pop-ups.");
+        setError("El navegador bloqueó la ventana. Por favor, habilita los permisos de ventanas emergentes para este sitio.");
       } else {
-        setError("Error al conectar con Google. Por favor, intenta de nuevo.");
+        setError("Error al conectar con Google. Inténtalo de nuevo.");
       }
     } finally {
       setLoading(false);
