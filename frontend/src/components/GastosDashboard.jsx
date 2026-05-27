@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from "../config/firebase.js"; 
-// Importamos los servicios de la API
 import { obtenerGastosAPI, crearGastoAPI, eliminarGastoAPI, exportarAExcelAPI } from '../services/gastosService';
 
-// 📊 Diccionario estático de categorías separadas de forma lógica
 const categoriasPorTipo = {
     Gasto: ['Comida', 'Vivienda', 'Transporte', 'Estudios', 'Otros'],
     Ingreso: ['Sueldo', 'Inversiones', 'Negocio', 'Premios', 'Otros']
@@ -23,12 +21,11 @@ const GastosDashboard = () => {
         categoria: 'Comida'
     });
 
-    // --- CARGAR DATOS AL INICIAR (VERSIÓN OPTIMIZADA) ---
     useEffect(() => {
         let desubscribir = () => {};
 
         const inicializarPanel = async () => {
-            // 1. Verificación inmediata: si el usuario ya está en memoria local, cargamos directo
+            // 1. Verificación inmediata: si el usuario ya está listo, cargamos directo
             if (auth.currentUser) {
                 try {
                     const token = await auth.currentUser.getIdToken();
@@ -37,12 +34,12 @@ const GastosDashboard = () => {
                 } catch (error) {
                     console.error("Error inicial cargando transacciones:", error);
                 } finally {
-                    setLoading(false);
+                    setLoading(false); // Apaga la carga solo al terminar la petición
                 }
                 return;
             }
 
-            // 2. Si aún no se ha instanciado, escuchamos el cambio de estado de sesión de forma segura
+            // 2. Escucha activa de Firebase Auth
             desubscribir = auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     try {
@@ -51,20 +48,21 @@ const GastosDashboard = () => {
                         setGastos(data || []);
                     } catch (error) {
                         console.error("Error asíncrono en onAuthStateChanged:", error);
+                    } finally {
+                        setLoading(false);
                     }
+                } else {
+                    // Si definitivamente Firebase determinó que NO hay usuario logueado
+                    setLoading(false);
                 }
-                // Nos aseguramos de liberar siempre la pantalla de carga
-                setLoading(false);
             });
         };
 
         inicializarPanel();
 
-        // Limpieza del listener al desmontar el componente para evitar fugas de memoria
         return () => desubscribir();
     }, []);
 
-    // --- 🛠️ CÁLCULOS DE LOS TOTALES SEGUROS ---
     const listaGastos = Array.isArray(gastos) 
         ? gastos 
         : (gastos && Array.isArray(gastos.gastos) ? gastos.gastos : []);
@@ -79,7 +77,6 @@ const GastosDashboard = () => {
 
     const saldoDisponible = totalIngresos - totalGastos;
 
-    // --- MANEJO DEL FORMULARIO INTELIGENTE ---
     const handleChange = (e) => {
         const { name, value } = e.target;
 
@@ -193,7 +190,7 @@ const GastosDashboard = () => {
         <div className="min-h-screen bg-gray-50 text-gray-800 pb-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
                 
-                {/* 💰 TARJETAS DE TOTALES */}
+                {/* TARJETAS DE TOTALES */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-blue-500">
                         <p className="text-xs font-bold text-gray-400 tracking-wider uppercase">💰 Saldo Total Disponible</p>

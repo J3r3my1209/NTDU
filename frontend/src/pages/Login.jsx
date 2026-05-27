@@ -52,7 +52,7 @@ export default function Login() {
       localStorage.setItem('token', token);
       
       // Salto inmediato al Dashboard
-      navigate('/gastosDashboard');
+      navigate('/dashboard');
     } catch (err) {
       console.error("❌ Error en el intercambio de Firebase:", err);
       setError("No se pudo sincronizar el inicio de sesión.");
