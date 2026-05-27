@@ -1,67 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 🚀 Importamos las funciones necesarias para la redirección segura
-import { 
-  signInWithRedirect, 
-  getRedirectResult, 
-  GoogleAuthProvider 
-} from 'firebase/auth';
-// Importa tu instancia de 'auth' desde donde tengas configurado Firebase en tu frontend
-import { auth } from '../config/firebase.js'; 
+import { signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../config/firebase.js'; 
 
 export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const provider = new GoogleAuthProvider();
 
-  // 🔄 Este useEffect escucha automáticamente cuando el usuario regresa de Google
-  useEffect(() => {
-    const verificarRetornoGoogle = async () => {
-      try {
-        setLoading(true);
-        const result = await getRedirectResult(auth);
-        
-        if (result) {
-          // El usuario acaba de iniciar sesión con éxito tras ser redirigido
-          const user = result.user;
-          const token = await user.getIdToken();
-          
-          console.log("🟢 Login con Google exitoso:", user.displayName);
-          
-          // Aquí puedes guardar el token en el localStorage o enviarlo a tu backend en Render
-          localStorage.setItem('token', token);
-          
-          // Rediriges al usuario al dashboard o inicio de la app
-          navigate('/dashboard'); 
-        }
-      } catch (err) {
-        console.error("❌ Error al procesar el retorno de Google:", err);
-        setError("No se pudo completar el inicio de sesión con Google.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verificarRetornoGoogle();
-  }, [navigate]);
-
-  // 🚪 Función que se ejecuta al presionar el botón
-  const handleLoginGoogle = () => {
+  const handleLoginGoogle = async () => {
     try {
+      setLoading(true);
       setError(null);
-      // Redirige al usuario en la misma pestaña
-      signInWithRedirect(auth, provider);
+      
+      // 🟢 Abre la ventana emergente oficial de Firebase
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const token = await user.getIdToken();
+      
+      console.log("🟢 Login exitoso con Google:", user.displayName);
+      localStorage.setItem('token', token);
+      
+      // Redirige al inicio de tu app
+      navigate('/dashboard'); 
     } catch (err) {
-      console.error("❌ Error al iniciar la redirección:", err);
-      setError("No se pudo iniciar la autenticación con Google.");
+      console.error("❌ Error con Google:", err);
+      // Si el navegador bloquea el popup, le avisamos amigablemente al usuario
+      if (err.code === 'auth/popup-blocked') {
+        setError("Por favor, permite las ventanas emergentes en tu navegador para iniciar sesión.");
+      } else {
+        setError("No se pudo iniciar sesión con Google.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-8 shadow-lg">
-        {/* Encabezado */}
         <div className="text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl">
             💵
@@ -71,7 +48,6 @@ export default function Login() {
           </h2>
         </div>
 
-        {/* Formulario tradicional (Correo / Contraseña) */}
         <form className="mt-8 space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div>
             <input
@@ -96,7 +72,6 @@ export default function Login() {
             </a>
           </div>
 
-          {/* Mensaje de error dinámico */}
           {error && (
             <p className="text-center text-sm font-semibold text-red-500 animate-pulse">
               {error}
@@ -106,9 +81,8 @@ export default function Login() {
           <button
             type="submit"
             className="w-full rounded-lg bg-black p-3 font-semibold text-white transition hover:bg-gray-800"
-            disabled={loading}
           >
-            {loading ? "Cargando..." : "Entrar de Una"}
+            Entrar de Una
           </button>
         </form>
 
@@ -118,18 +92,18 @@ export default function Login() {
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
-        {/* 🔘 BOTÓN DE GOOGLE ACTUALIZADO */}
+        {/* 🔘 BOTÓN DE GOOGLE CORREGIDO */}
         <button
           onClick={handleLoginGoogle}
           disabled={loading}
           className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white p-3 font-medium text-gray-700 transition hover:bg-gray-50"
         >
           <img 
-            src="https://docs.genezio.com/img/google.svg" 
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
             alt="Google" 
             className="h-5 w-5" 
           />
-          {loading ? "Procesando..." : "Continuar con Google"}
+          {loading ? "Cargando..." : "Continuar con Google"}
         </button>
 
         <p className="text-center text-sm text-gray-600">

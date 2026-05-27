@@ -1,8 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { auth } from './config/firebase';
+import { auth } from './config/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
-
 import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
 import Login from './pages/Login';
