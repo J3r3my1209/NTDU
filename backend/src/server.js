@@ -28,7 +28,16 @@ admin.initializeApp({
 const app = express();
 
 // 4. Middlewares globales
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173', // Para cuando programes en tu computadora
+    'https://ntdu.vercel.app' // ¡Tu enlace real de producción!
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // 5. Definir las rutas (Ahora sí, app existe y no va a crashear)
