@@ -1,15 +1,16 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001/api/gastos';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = `${BASE_URL}/api/gastos`;
 
 // 1. OBTENER GASTOS
 export const obtenerGastosAPI = async (token) => {
-    const response = await axios.get(API_URL, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-    return response.data; // Axios desempaqueta la respuesta automáticamente en .data
+  const response = await axios.get(API_URL, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.data; 
 };
 
 // 2. CREAR GASTO
