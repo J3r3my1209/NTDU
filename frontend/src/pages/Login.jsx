@@ -14,14 +14,12 @@ useEffect(() => {
       google.accounts.id.initialize({
         client_id: "706466995732-bn39dkemlfd71c64s3pgd6ibjtu89a4l.apps.googleusercontent.com", 
         callback: handleCallbackResponse,
-        // 🔄 CAMBIO DE UX: Usamos 'redirect' para que no intente abrir popups bloqueados
-        ux_mode: "redirect", 
-        login_uri: "https://ntdu.vercel.app/login"
+        // 🟢 Volvemos a modo popup nativo (inmune a bloqueadores) para evitar el salto de página
+        ux_mode: "popup" 
       });
 
       google.accounts.id.renderButton(
         document.getElementById("googleBtnDiv"),
-        // 🟢 CORRECCIÓN: El ancho debe ser un número entero (en píxeles), no "100%"
         { theme: "outline", size: "large", width: 350 } 
       );
     }
