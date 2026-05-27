@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 🚀 Volvemos a usar signInWithPopup de manera inteligente
-import { signInWithPopup } from 'firebase/auth';
-// Importamos 'auth' y 'provider' desde tu archivo de firebase
+import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, provider } from '../config/firebase'; 
 
 export default function Login() {
@@ -10,39 +8,43 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLoginGoogle = async () => {
-    // 1️⃣ TRUCO MAESTRO: Abrimos la ventana inmediatamente al dar clic.
-    // Esto le demuestra a Chrome que la acción viene de un humano y evita el bloqueo por completo.
-    const ventanaPopup = window.open('', '_blank', 'width=500,height=600');
-    
-    if (!ventanaPopup) {
-      setError("Por favor, permite las ventanas emergentes para iniciar sesión.");
-      return;
-    }
+  // Escucha cuando el usuario regresa de loguearse en Google
+  useEffect(() => {
+    const verificarRetorno = async () => {
+      try {
+        setLoading(true);
+        const result = await getRedirectResult(auth);
+        if (result) {
+          const user = result.user;
+          const token = await user.getIdToken();
+          
+          console.log("🟢 Autenticado con éxito:", user.displayName);
+          localStorage.setItem('token', token);
+          navigate('/dashboard'); 
+        }
+      } catch (err) {
+        console.error("❌ Error en el retorno:", err);
+        // Si sale un error de dominio, mostramos una alerta clara
+        if (err.code === 'auth/auth-domain-config-required') {
+          setError("Error de configuración de dominio en Firebase.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    verificarRetorno();
+  }, [navigate]);
+
+  const handleLoginGoogle = async () => {
     try {
-      setLoading(true);
       setError(null);
-      
-      // 2️⃣ Le pasamos la ventana ya abierta a Firebase para que cargue la autenticación
-      const result = await signInWithPopup(auth, provider);
-      
-      // Si todo sale bien, Firebase usará la ventana abierta
-      const user = result.user;
-      const token = await user.getIdToken();
-      
-      console.log("🟢 Login exitoso con Google:", user.displayName);
-      localStorage.setItem('token', token);
-      
-      // Redirige al inicio de tu app
-      navigate('/dashboard'); 
+      setLoading(true);
+      // Ejecuta la redirección usando el nuevo dominio seguro
+      await signInWithRedirect(auth, provider);
     } catch (err) {
-      console.error("❌ Error con Google:", err);
-      setError("No se pudo completar el inicio de sesión con Google.");
-      
-      // Si falla, cerramos la pestaña que abrimos manualmente
-      if (ventanaPopup) ventanaPopup.close();
-    } finally {
+      console.error("❌ Error al redireccionar:", err);
+      setError("No se pudo conectar con Google.");
       setLoading(false);
     }
   };
@@ -77,12 +79,6 @@ export default function Login() {
             />
           </div>
 
-          <div className="text-right">
-            <a href="#" className="text-sm text-gray-500 hover:underline">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
-
           {error && (
             <p className="text-center text-sm font-semibold text-red-500 animate-pulse">
               {error}
@@ -104,7 +100,6 @@ export default function Login() {
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
-        {/* 🔘 BOTÓN DE GOOGLE ANTIBLOQUEO */}
         <button
           onClick={handleLoginGoogle}
           disabled={loading}
@@ -115,15 +110,8 @@ export default function Login() {
             alt="Google" 
             className="h-5 w-5" 
           />
-          {loading ? "Abriendo Google..." : "Continuar con Google"}
+          {loading ? "Redirigiendo a Google..." : "Continuar con Google"}
         </button>
-
-        <p className="text-center text-sm text-gray-600">
-          ¿No tienes cuenta?{' '}
-          <span className="cursor-pointer font-bold text-emerald-500 hover:underline" onClick={() => navigate('/registro')}>
-            Regístrate aquí
-          </span>
-        </p>
       </div>
     </div>
   );
