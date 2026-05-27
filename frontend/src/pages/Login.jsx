@@ -1,53 +1,49 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 🚀 Importamos los métodos para redirección nativa
-import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
-// Importamos 'auth' y 'provider' de tu archivo de configuración
-import { auth, provider } from '../config/firebase.js'; 
+// 🚀 Volvemos a usar signInWithPopup de manera inteligente
+import { signInWithPopup } from 'firebase/auth';
+// Importamos 'auth' y 'provider' desde tu archivo de firebase
+import { auth, provider } from '../config/firebase'; 
 
 export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔄 Este useEffect detecta automáticamente cuando el usuario vuelve de Google
-  useEffect(() => {
-    const comprobarRetornoDeGoogle = async () => {
-      try {
-        setLoading(true);
-        const result = await getRedirectResult(auth);
-        
-        if (result) {
-          // ¡Login exitoso tras la redirección!
-          const user = result.user;
-          const token = await user.getIdToken();
-          
-          console.log("🟢 Login con Google exitoso:", user.displayName);
-          localStorage.setItem('token', token);
-          
-          // Te manda a tu pantalla principal
-          navigate('/dashboard'); 
-        }
-      } catch (err) {
-        console.error("❌ Error al procesar el retorno de Google:", err);
-        setError("Ocurrió un error al regresar de la autenticación.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleLoginGoogle = async () => {
+    // 1️⃣ TRUCO MAESTRO: Abrimos la ventana inmediatamente al dar clic.
+    // Esto le demuestra a Chrome que la acción viene de un humano y evita el bloqueo por completo.
+    const ventanaPopup = window.open('', '_blank', 'width=500,height=600');
+    
+    if (!ventanaPopup) {
+      setError("Por favor, permite las ventanas emergentes para iniciar sesión.");
+      return;
+    }
 
-    comprobarRetornoDeGoogle();
-  }, [navigate]);
-
-  // 🚪 Función del botón
-  const handleLoginGoogle = () => {
     try {
+      setLoading(true);
       setError(null);
-      // Redirige en la misma pestaña. ¡Inmune a los bloqueadores de pop-ups!
-      signInWithRedirect(auth, provider);
+      
+      // 2️⃣ Le pasamos la ventana ya abierta a Firebase para que cargue la autenticación
+      const result = await signInWithPopup(auth, provider);
+      
+      // Si todo sale bien, Firebase usará la ventana abierta
+      const user = result.user;
+      const token = await user.getIdToken();
+      
+      console.log("🟢 Login exitoso con Google:", user.displayName);
+      localStorage.setItem('token', token);
+      
+      // Redirige al inicio de tu app
+      navigate('/dashboard'); 
     } catch (err) {
-      console.error("❌ Error al iniciar redirección:", err);
-      setError("No se pudo conectar con Google.");
+      console.error("❌ Error con Google:", err);
+      setError("No se pudo completar el inicio de sesión con Google.");
+      
+      // Si falla, cerramos la pestaña que abrimos manualmente
+      if (ventanaPopup) ventanaPopup.close();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,6 +104,7 @@ export default function Login() {
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
+        {/* 🔘 BOTÓN DE GOOGLE ANTIBLOQUEO */}
         <button
           onClick={handleLoginGoogle}
           disabled={loading}
@@ -118,7 +115,7 @@ export default function Login() {
             alt="Google" 
             className="h-5 w-5" 
           />
-          {loading ? "Procesando..." : "Continuar con Google"}
+          {loading ? "Abriendo Google..." : "Continuar con Google"}
         </button>
 
         <p className="text-center text-sm text-gray-600">
