@@ -8,45 +8,54 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     /* global google */
     if (typeof google !== 'undefined') {
-      google.accounts.id.initialize({
-        client_id: "706466995732-bn39dkemlfd71c64s3pgd6ibjtu89a4l.apps.googleusercontent.com", 
-        callback: handleCallbackResponse,
-        // 🚀 CAMBIO ESTRATÉGICO: Forzamos la redirección nativa en la misma pestaña
-        ux_mode: "redirect", 
-        login_uri: "https://ntdu.vercel.app/login"
-      });
+      try {
+        google.accounts.id.initialize({
+          client_id: "706466995732-bn39dkemlfd71c64s3pgd6ibjtu89a4l.apps.googleusercontent.com", 
+          callback: handleCallbackResponse,
+          // 🟢 SOLUCIÓN MAESTRA: Activamos FedCM para que Chrome maneje el flujo 
+          // a nivel de navegador y devuelva la credencial directo a la consola,
+          // evitando por completo el POST roto (Error 405) de Vercel.
+          use_fedcm: true 
+        });
 
-      google.accounts.id.renderButton(
-        document.getElementById("googleBtnDiv"),
-        { theme: "outline", size: "large", width: 350 } 
-      );
+        // Esto dibuja automáticamente el prompt flotante arriba a la derecha si ya estás logueado en Chrome
+        google.accounts.id.prompt();
+
+        // Renderizamos el botón clásico abajo por si no se activa el prompt automático
+        google.accounts.id.renderButton(
+          document.getElementById("googleBtnDiv"),
+          { theme: "outline", size: "large", width: 350 } 
+        );
+      } catch (err) {
+        console.error("Error al inicializar Google Identity Client:", err);
+      }
     }
   }, []);
 
-const handleCallbackResponse = async (response) => {
+  const handleCallbackResponse = async (response) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Extraemos la credencial segura devuelta por la redirección de Google
+      // Recibimos la credencial encapsulada de forma interna
       const credential = GoogleAuthProvider.credential(response.credential);
       
-      // Iniciamos sesión en Firebase usando el token verificado
+      // Validamos e iniciamos sesión dentro de Firebase sin salir de la página
       const result = await signInWithCredential(auth, credential);
       const user = result.user;
       const token = await user.getIdToken();
 
-      console.log("🟢 Autenticación exitosa:", user.displayName);
+      console.log("🟢 Login completado con éxito mediante FedCM:", user.displayName);
       localStorage.setItem('token', token);
       
-      // Redirección inmediata al Dashboard sin esperas catastróficas
+      // Salto inmediato al Dashboard
       navigate('/dashboard');
     } catch (err) {
-      console.error("❌ Error en canje de credencial:", err);
-      setError("Error de sincronización con Google Identity.");
+      console.error("❌ Error en el intercambio de Firebase:", err);
+      setError("No se pudo sincronizar el inicio de sesión.");
     } finally {
       setLoading(false);
     }
@@ -103,9 +112,9 @@ const handleCallbackResponse = async (response) => {
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
-        {/* 🔘 NUEVO CONTENEDOR SEGURO PARA EL BOTÓN OFICIAL DE GOOGLE */}
+        {/* Contenedor del botón nativo de Google */}
         <div className="w-full flex justify-center">
-          <div id="googleBtnDiv" className="w-full"></div>
+          <div id="googleBtnDiv" className="w-full flex justify-center"></div>
         </div>
       </div>
     </div>
